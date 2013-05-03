@@ -7,30 +7,32 @@ with wand fork: https://github.com/beartung/wand
 import os
 import json
 import urllib2
+from functools import partial
 
 inputdir = 'in'
 tmpdir = '/tmp/pop_art'
 outputdir= 'out'
 
 from wand.image import Image
+from wand.color import Color
 from wand.api import library
 
-def get_rgb(colors, index):
+def get_color(colors, index):
     return '#' + colors[index]
 
-def pop_art_color(x, y, color, **kwargs):
+def pop_art_color(x, y, color, colors):
     r = color.red * 255
     if r < 50:
-        color = get_rgb(colors, 0)
+        color = get_color(colors, 0)
     elif r < 100:
-        color = get_rgb(colors, 1)
+        color = get_color(colors, 1)
     elif r < 150:
-        color = get_rgb(colors, 2)
+        color = get_color(colors, 2)
     elif r < 200:
-        color = get_rgb(colors, 3)
+        color = get_color(colors, 3)
     else:
-        color = get_rgb(colors, 4)
-    return color
+        color = get_color(colors, 4)
+    return Color(color)
 
 #http://www.colourlovers.com/api/palette/1886982/?format=json
 def get_color_palette(id=None):
@@ -87,7 +89,7 @@ def center_crop(img, size=256):
     elif iw < cw and ih < ch:
         img.size(cw, ch, "catrom")
 
-if __name__ == '__main__':
+def main():
     if not os.path.exists(outputdir):
         os.mkdir(outputdir)
     if not os.path.exists(tmpdir):
@@ -103,18 +105,35 @@ if __name__ == '__main__':
         with Image(filename=input_name) as img:
             center_crop(img)
             img.save(filename=temp_name)
+        print 'save resized image to %s' % temp_name
         output_name = file_basename + '_' + str(palette['id']) + '_' + palette['title']  + file_extension
         output_name = '%s/%s' % (outputdir, output_name)
         colors = palette['colors']
+        pop_art = partial(pop_art_color, colors=colors)
         with Image(filename=temp_name) as img:
-            img.recolor(color_func=pop_art_color, colors=colors)
+            img.recolor(color_func=pop_art)
             img.save(filename=output_name)
         print 'done to %s' % output_name
         print 'processing %s with reverse color' % file_basename
         colors.reverse()
+        pop_art_reverse = partial(pop_art_color, colors=colors)
         output_name = file_basename + '_' + str(palette['id']) + '_' + palette['title']  + "_dec" + file_extension
         output_name = '%s/%s' % (outputdir, output_name)
         with Image(filename=temp_name) as img:
-            img.recolor(color_func=pop_art_color, colors=colors)
+            img.recolor(color_func=pop_art_reverse)
             img.save(filename=output_name)
         print 'done to %s' % output_name
+
+def test_64():
+    palette = get_color_palette(1886982)
+    colors = palette['colors']
+    pop_art = partial(pop_art_color, colors=colors)
+    with Image(filename="in/test.jpg") as img:
+        center_crop(img, 64)
+        img.save(filename="in/t.jpg")
+    with Image(filename="in/t.jpg") as img:
+        img.recolor(color_func=pop_art)
+        img.save(filename="test_out.jpg")
+
+if __name__ == '__main__':
+    #main()

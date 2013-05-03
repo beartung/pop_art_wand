@@ -7,6 +7,7 @@ with wand fork: https://github.com/beartung/wand
 import os
 import json
 import urllib2
+import traceback
 
 inputdir = 'in'
 tmpdir = '/tmp/pop_art'
@@ -87,7 +88,7 @@ def center_crop(img, size=256):
     elif iw < cw and ih < ch:
         img.size(cw, ch, "catrom")
 
-if __name__ == '__main__':
+def main():
     if not os.path.exists(outputdir):
         os.mkdir(outputdir)
     if not os.path.exists(tmpdir):
@@ -118,3 +119,22 @@ if __name__ == '__main__':
             img.recolor(color_func=pop_art_color, colors=colors)
             img.save(filename=output_name)
         print 'done to %s' % output_name
+
+def make_four(infile_path, outfile_path=None):
+    try:
+        filename = infile_path.split('/')[-1]
+        palette1 = get_color_palette()
+        print 'using palette1 %s ( %s )' % (palette1['title'], palette1['url'])
+        palette2 = get_color_palette()
+        print 'using palette1 %s ( %s )' % (palette2['title'], palette2['url'])
+        color_lists = []
+        if palette1:
+        tempfile = tmpdir + '/' + filename
+        if not outfile_path:
+            outfile_path = outputdir + '/4_' + filename
+        with Image(filename=infile_path) as img:
+    except Exception, e:
+        return traceback.format_exc()
+
+if __name__ == '__main__':
+    main()

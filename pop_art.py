@@ -5,9 +5,11 @@ based on http://codeboje.de/fun-colors-or-making-art-python/
 with wand fork: https://github.com/beartung/wand
 """
 import os
+import math
 import json
 import urllib2
 from functools import partial
+import traceback
 
 inputdir = 'in'
 tmpdir = '/tmp/pop_art'
@@ -135,5 +137,36 @@ def test_64():
         img.recolor(color_func=pop_art)
         img.save(filename="test_out.jpg")
 
+
+def make_pop(infile_path, outfile_path, color_func):
+    with Image(filename=infile_path) as img:
+        img.recolor(color_func=color_func)
+        img.save(filename=outfile_path)
+
+def make_palette_couple(infile_path, palette_id=None):
+    try:
+        filename = infile_path.split('/')[-1]
+        palette = get_color_palette(palette_id)
+        print 'using palette %s ( %s )' % (palette['title'], palette['url'])
+        colors = palette['colors']
+
+        output_name = '%s/%s_%s' % (outputdir, palette['id'], filename)
+        pop_art = partial(pop_art_color, colors=colors)
+        make_pop(infile_path, output_name, pop_art)
+        print 'done to %s' % output_name
+        colors.reverse()
+        pop_art_reverse = partial(pop_art_color, colors=colors)
+        output_name = '%s/r_%s_%s' % (outputdir, palette['id'], filename)
+        make_pop(infile_path, output_name, pop_art_reverse)
+        print 'done to %s' % output_name
+    except Exception, e:
+        print traceback.format_exc()
+
+#http://www.imagemagick.org/Usage/montage/
+
 if __name__ == '__main__':
     #main()
+    for i in xrange(10):
+        make_palette_couple("in/t.jpg")
+    #make_palette_couple("in/t.jpg", 1886982)
+    #make_palette_couple("in/t.jpg", 1644633)

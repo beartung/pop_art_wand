@@ -8,6 +8,7 @@ import os
 import math
 import json
 import urllib2
+from time import sleep
 from functools import partial
 import traceback
 
@@ -23,18 +24,23 @@ def get_color(colors, index):
     return '#' + colors[index]
 
 def pop_art_color(x, y, color, colors):
+    print 'b', x, y, color.red * 255, color.red * 65535
     r = color.red * 255
+    ix = 0
     if r < 50:
-        color = get_color(colors, 0)
+        ix = 0
     elif r < 100:
-        color = get_color(colors, 1)
+        ix = 1
     elif r < 150:
-        color = get_color(colors, 2)
+        ix = 2
     elif r < 200:
-        color = get_color(colors, 3)
+        ix = 3
     else:
-        color = get_color(colors, 4)
-    return Color(color)
+        ix = 4
+    color = get_color(colors, ix)
+    color = Color(color)
+    print 'a', x, y, color.red * 255, color.red * 65535, 'ix=%s' % ix
+    return color
 
 #http://www.colourlovers.com/api/palette/1886982/?format=json
 def get_color_palette(id=None):
@@ -126,22 +132,42 @@ def main():
             img.save(filename=output_name)
         print 'done to %s' % output_name
 
-def test_64():
-    palette = get_color_palette(1886982)
-    colors = palette['colors']
-    pop_art = partial(pop_art_color, colors=colors)
-    with Image(filename="in/test.jpg") as img:
-        center_crop(img, 64)
-        img.save(filename="in/t.jpg")
-    with Image(filename="in/t.jpg") as img:
-        img.recolor(color_func=pop_art)
-        img.save(filename="test_out.jpg")
-
-
 def make_pop(infile_path, outfile_path, color_func):
     with Image(filename=infile_path) as img:
-        img.recolor(color_func=color_func)
-        img.save(filename=outfile_path)
+        ret = img.recolor(color_func=color_func)
+        ret.save(filename=outfile_path)
+
+def make_palette(infile_path, palette_id=None):
+    try:
+        filename = infile_path.split('/')[-1]
+        palette = get_color_palette(palette_id)
+        print 'using palette %s ( %s )' % (palette['title'], palette['url'])
+        colors = palette['colors']
+
+        output_name = '%s/%s_%s' % (outputdir, palette['id'], filename)
+        pop_art = partial(pop_art_color, colors=colors)
+        make_pop(infile_path, output_name, pop_art)
+        print 'done to %s' % output_name
+    except Exception, e:
+        print traceback.format_exc()
+
+def make_local_palette(infile_path):
+    try:
+        filename = infile_path.split('/')[-1]
+        colors = [
+                "EFC616",
+                "DC151A",
+                "16559A",
+                "0F3065",
+                "158B71"
+                ]
+        pid = 1886982
+        output_name = '%s/%s_%s' % (outputdir, pid, filename)
+        pop_art = partial(pop_art_color, colors=colors)
+        make_pop(infile_path, output_name, pop_art)
+        print 'done to %s' % output_name
+    except Exception, e:
+        print traceback.format_exc()
 
 def make_palette_couple(infile_path, palette_id=None):
     try:
@@ -164,9 +190,25 @@ def make_palette_couple(infile_path, palette_id=None):
 
 #http://www.imagemagick.org/Usage/montage/
 
+def fetch_color_palette(id=None):
+    user_agent = 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT)'
+    headers = { 'User-Agent' : user_agent }
+    url = 'http://www.colourlovers.com/api/palettes/random?format=json'
+    if id:
+        url = 'http://www.colourlovers.com/api/palette/%s/?format=json' % id
+    req = urllib2.Request(url, '', headers)
+    response = urllib2.urlopen(req)
+    palettes = json.load(response)
+    palette = palettes[0]
+    if len(palette['colors']) == 5:
+        print palette['id'], ' '.join(palette['colors'])
+
 if __name__ == '__main__':
     #main()
-    for i in xrange(10):
-        make_palette_couple("in/t.jpg")
+    #for i in xrange(10):
+    #    make_palette_couple("in/t.jpg")
+    #make_local_palette("in/t.jpg")
+    #make_palette("in/t.jpg", 1886982)
     #make_palette_couple("in/t.jpg", 1886982)
     #make_palette_couple("in/t.jpg", 1644633)
+    #fetch_color_palette(1886982)

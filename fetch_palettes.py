@@ -22,10 +22,16 @@ def fetch_color_palette(id=None):
     palettes = json.load(response)
     palette = palettes[0]
     if len(palette['colors']) == 5:
-        print palette['id'], ' '.join(palette['colors'])
+        colors = palette['colors']
+        print palette['id'], colors
         out = open("%s%s.palette" % (PALETTE_DIR, palette['id']), 'w')
-        colors = ' '.join([' '.join('0x%s' % c[x:x+2] for x in xrange(0, 6, 2)) for c in palette['colors']])
-        out.write(colors)
+        s = ' '.join([' '.join('0x%s' % c[x:x+2] for x in xrange(0, 6, 2)) for c in palette['colors']])
+        out.write(s)
+        out.close()
+        out = open("%s%s.r.palette" % (PALETTE_DIR, palette['id']), 'w')
+        colors.reverse()
+        s = ' '.join([' '.join('0x%s' % c[x:x+2] for x in xrange(0, 6, 2)) for c in palette['colors']])
+        out.write(s)
         out.close()
 
 if __name__ == '__main__':
